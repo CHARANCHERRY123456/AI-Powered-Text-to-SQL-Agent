@@ -6,6 +6,8 @@
 # pip install pymysql
 # pip install google-generativeai
 
+
+# legacy code ignore it
 from langchain_community.utilities import SQLDatabase
 
 # mysql_uri = (
