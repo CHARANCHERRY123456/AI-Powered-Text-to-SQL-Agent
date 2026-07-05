@@ -4,7 +4,7 @@ from langchain.chat_models import init_chat_model
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 from langgraph.prebuilt import create_react_agent
 from langsmith import Client
-from backend.config import DATABASE_URL, LLM_MODEL, LLM_TOP_K, SQL_DIALECT
+from config import DATABASE_URL, LLM_MODEL, LLM_TOP_K, SQL_DIALECT
 
 logger = logging.getLogger(__name__)
 

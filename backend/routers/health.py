@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from backend.config import LLM_MODEL, SQL_DIALECT
+from config import LLM_MODEL, SQL_DIALECT
 
 router = APIRouter()
 

@@ -1,7 +1,7 @@
 import logging
 from sqlalchemy import create_engine, text, inspect as sa_inspect
 from sqlalchemy.engine import Engine
-from backend.utils import serialize_value
+from utils import serialize_value
 
 logger = logging.getLogger(__name__)
 

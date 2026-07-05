@@ -21,11 +21,11 @@ from typing import AsyncGenerator
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
-from backend.agent import get_agent
-from backend.config import DATABASE_URL, LLM_MODEL, SQL_DIALECT
-from backend.db import build_engine, run_sql
-from backend.models import QueryRequest
-from backend.utils import extract_tables, to_text
+from agent import get_agent
+from config import DATABASE_URL, LLM_MODEL, SQL_DIALECT
+from db import build_engine, run_sql
+from models import QueryRequest
+from utils import extract_tables, to_text
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

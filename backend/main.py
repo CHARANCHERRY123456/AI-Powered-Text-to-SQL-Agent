@@ -11,8 +11,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend import agent
-from backend.routers import database, health, query
+import agent
+from routers import database, health, query
 
 logging.basicConfig(
     level=logging.INFO,

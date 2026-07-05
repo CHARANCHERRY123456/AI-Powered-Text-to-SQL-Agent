@@ -1,10 +1,10 @@
 import logging
 from fastapi import APIRouter, HTTPException
 from langchain_community.utilities import SQLDatabase
-from backend.models import ConnectRequest
-from backend.db import build_engine, build_schema
-from backend.config import DATABASE_URL
-from backend import agent as agent_module
+from models import ConnectRequest
+from db import build_engine, build_schema
+from config import DATABASE_URL
+import agent as agent_module
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
