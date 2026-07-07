@@ -109,6 +109,7 @@ def _run_agent(
 
     Returns (answer, sql_query, tl_events, token_usage, total_ms).
     """
+    logger.info("Agent run started | question=%r", question)
     agent = get_agent()
     start = time.time()
 
@@ -151,6 +152,9 @@ def _run_agent(
                     tool_name: str = tc.get("name", "")
                     step_label = _TOOL_STEPS.get(tool_name, tool_name)
                     tl_events.append((step_label, elapsed))
+                    logger.info(
+                        "[%5dms] tool_call=%s args=%s", elapsed, tool_name, tc.get("args", {})
+                    )
 
                     if tool_name == "sql_db_list_tables":
                         if on_event:
@@ -180,6 +184,7 @@ def _run_agent(
                         candidate = tc.get("args", {}).get("query")
                         if candidate:
                             sql_query = candidate
+                            logger.info("[%5dms] SQL generated: %s", elapsed, sql_query)
                         if on_event:
                             on_event("step", {
                                 "type": "sql_generated",
@@ -192,6 +197,7 @@ def _run_agent(
                 # Final answer — no tool calls means the agent is done
                 answer = to_text(msg.content)
                 tl_events.append(("Generating Final Response", elapsed))
+                logger.info("[%5dms] Final answer: %s", elapsed, answer)
 
                 if on_event:
                     on_event("step", {
@@ -208,14 +214,18 @@ def _run_agent(
                         "completion": um.get("output_tokens", 0),
                         "total": um.get("total_tokens", 0),
                     }
+                    logger.info("Token usage: %s", token_usage)
 
         elif kind == "ToolMessage":
             msg_name = getattr(msg, "name", "")
             content = to_text(msg.content) if hasattr(msg, "content") else ""
 
+            logger.info("[%5dms] tool_result=%s content=%r", elapsed, msg_name, content[:200])
+
             if msg_name == "sql_db_list_tables":
                 tables = [t.strip() for t in content.split(",") if t.strip()]
                 tl_events.append(("Tables Found", elapsed))
+                logger.info("[%5dms] Tables found: %s", elapsed, tables)
                 if on_event:
                     on_event("step", {
                         "type": "tables_found",
@@ -254,13 +264,17 @@ def _run_agent(
                     })
 
     total_ms = int((time.time() - start) * 1000)
+    logger.info("Agent run finished in %dms | steps=%d", total_ms, len(tl_events))
     return answer, sql_query, tl_events, token_usage, total_ms
 
 
 def _execute_sql(sql_query: str) -> tuple[list[str], list[list[str]]]:
+    logger.info("Executing SQL against DB: %s", sql_query)
     try:
         engine = build_engine(DATABASE_URL)
-        return run_sql(engine, sql_query)
+        columns, rows = run_sql(engine, sql_query)
+        logger.info("SQL execution returned %d row(s), %d column(s)", len(rows), len(columns))
+        return columns, rows
     except Exception as exc:
         logger.error("SQL execution error: %s", exc)
         return [], []
@@ -273,9 +287,11 @@ def _execute_sql(sql_query: str) -> tuple[list[str], list[list[str]]]:
 @router.post("/api/query")
 def query(req: QueryRequest):
     """Synchronous endpoint — waits for the agent to finish, returns full JSON."""
+    logger.info("=== /api/query received | question=%r ===", req.question)
     try:
         answer, sql_query, tl_events, token_usage, total_ms = _run_agent(req.question)
         columns, rows = _execute_sql(sql_query) if sql_query else ([], [])
+        logger.info("=== /api/query done in %dms ===", total_ms)
         return _build_payload(answer, sql_query, tl_events, token_usage, total_ms, columns, rows)
     except Exception as exc:
         logger.exception("Query failed: %s", exc)
@@ -295,6 +311,8 @@ async def query_stream(req: QueryRequest):
     asyncio.Queue using loop.call_soon_threadsafe.
     """
 
+    logger.info("=== /api/query/stream received | question=%r ===", req.question)
+
     async def event_gen() -> AsyncGenerator[str, None]:
         loop = asyncio.get_running_loop()
         queue: asyncio.Queue = asyncio.Queue()
@@ -302,6 +320,7 @@ async def query_stream(req: QueryRequest):
         # ---- thread worker ----
         def _worker():
             def _relay(tag: str, payload: dict):
+                logger.debug("SSE relay | tag=%s type=%s", tag, payload.get("type"))
                 loop.call_soon_threadsafe(queue.put_nowait, (tag, payload))
 
             try:
@@ -337,6 +356,7 @@ async def query_stream(req: QueryRequest):
                     answer, sql_query, tl_events, token_usage, total_ms, columns, rows
                 )
                 _relay("complete", {**payload, "type": "complete"})
+                logger.info("=== /api/query/stream done in %dms ===", total_ms)
 
             except Exception as exc:
                 logger.exception("Streaming agent error: %s", exc)
