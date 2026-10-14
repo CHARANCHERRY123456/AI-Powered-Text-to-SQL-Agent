@@ -4,7 +4,8 @@ from langchain.chat_models import init_chat_model
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 from langgraph.prebuilt import create_react_agent
 from langsmith import Client
-from config import DATABASE_URL, LLM_MODEL, LLM_TOP_K, SQL_DIALECT
+from config import LLM_MODEL, LLM_TOP_K, SQL_DIALECT
+from db import engine
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ def init_agent() -> None:
     global _agent, _sql_db
     logger.info("Initialising SQL agent (model=%s)", LLM_MODEL)
 
-    _sql_db = SQLDatabase.from_uri(DATABASE_URL)
+    _sql_db = SQLDatabase(engine)  # reuse the shared engine from db.py
     llm = init_chat_model(LLM_MODEL, model_provider="google_genai")
     toolkit = SQLDatabaseToolkit(db=_sql_db, llm=llm)
 

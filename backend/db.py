@@ -1,9 +1,14 @@
 import logging
 from sqlalchemy import create_engine, text, inspect as sa_inspect
 from sqlalchemy.engine import Engine
+from config import DATABASE_URL
 from utils import serialize_value
 
 logger = logging.getLogger(__name__)
+
+# The one engine (connection pool) for the default database. The LangChain
+# agent, the schema endpoint and query execution all share it.
+engine: Engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 
 def build_engine(conn_url: str) -> Engine:

@@ -2,8 +2,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 from langchain_community.utilities import SQLDatabase
 from models import ConnectRequest
-from db import build_engine, build_schema
-from config import DATABASE_URL
+from db import engine, build_engine, build_schema
 import agent as agent_module
 
 logger = logging.getLogger(__name__)
@@ -21,7 +20,6 @@ def get_schema():
     """Return the schema for the default (env-configured) database."""
     sql_db = agent_module.get_sql_db()
     table_names = sql_db.get_usable_table_names()
-    engine = build_engine(DATABASE_URL)
     schema = build_schema(engine, table_names)
     return {"schema": schema, "tables": table_names}
 

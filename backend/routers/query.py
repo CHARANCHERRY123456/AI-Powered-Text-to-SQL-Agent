@@ -22,8 +22,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from agent import get_agent
-from config import DATABASE_URL, LLM_MODEL, SQL_DIALECT
-from db import build_engine, run_sql
+from config import LLM_MODEL, SQL_DIALECT
+from db import engine, run_sql
 from models import QueryRequest
 from utils import extract_tables, to_text
 
@@ -271,7 +271,6 @@ def _run_agent(
 def _execute_sql(sql_query: str) -> tuple[list[str], list[list[str]]]:
     logger.info("Executing SQL against DB: %s", sql_query)
     try:
-        engine = build_engine(DATABASE_URL)
         columns, rows = run_sql(engine, sql_query)
         logger.info("SQL execution returned %d row(s), %d column(s)", len(rows), len(columns))
         return columns, rows
