@@ -17,8 +17,11 @@ def build_schema(engine: Engine, table_names: list[str]) -> dict:
     for table in table_names:
         try:
             pk_cols = set(
+                # get_pk_constraint return something like {"name": "students_pkey", "constrained_columns": ["id"]}
                 inspector.get_pk_constraint(table).get("constrained_columns", [])
             )
+            
+            # get_foreign_keys returns a list with one entry per FK constraint. Only the first column of each FK is kept, so for a composite FK (a, b) only a gets marked.
             fk_cols = {
                 fk["constrained_columns"][0]
                 for fk in inspector.get_foreign_keys(table)

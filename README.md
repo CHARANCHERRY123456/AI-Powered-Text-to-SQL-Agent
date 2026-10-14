@@ -30,9 +30,9 @@ The agent's system prompt is pulled from LangSmith (`langchain-ai/sql-agent-syst
 
 ```
 .
-├── api.py                   # FastAPI app entry point (uvicorn api:app)
 ├── agent_pipeline.py         # Standalone script version of the agent (reference/prototype)
 ├── backend/
+│   ├── main.py               # FastAPI app entry point (uvicorn main:app)
 │   ├── agent.py              # Builds & caches the LangGraph SQL agent + SQLDatabase
 │   ├── config.py              # Environment-driven settings (DB URL, LLM model, dialect)
 │   ├── db.py                  # SQLAlchemy engine, schema introspection, raw SQL execution
@@ -89,10 +89,11 @@ LLM_MODEL=gemini-2.5-flash                    # optional, this is the default
 LLM_TOP_K=5                                    # optional, this is the default
 ```
 
-Run the API:
+Run the API from the `backend/` directory:
 
 ```bash
-uvicorn api:app --reload --port 8000
+cd backend
+uvicorn main:app --reload --port 8000
 ```
 
 ### Frontend
