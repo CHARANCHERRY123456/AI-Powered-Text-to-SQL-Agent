@@ -16,6 +16,7 @@ import asyncio
 import json
 import logging
 import time
+import uuid
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, HTTPException
@@ -91,6 +92,7 @@ def _build_payload(
 
 def _run_agent(
     question: str,
+    thread_id: str | None = None,
     on_event=None,          # optional callback(tag, payload) for streaming
 ) -> tuple[str, str | None, list[tuple[str, int]], dict, int]:
     """
@@ -109,7 +111,9 @@ def _run_agent(
 
     Returns (answer, sql_query, tl_events, token_usage, total_ms).
     """
-    logger.info("Agent run started | question=%r", question)
+    # The agent's checkpointer needs a thread_id; without one, use a throwaway id.
+    thread_id = thread_id or str(uuid.uuid4())
+    logger.info("Agent run started | thread=%s question=%r", thread_id, question)
     agent = get_agent()
     start = time.time()
 
@@ -138,6 +142,7 @@ def _run_agent(
     # ---- Phase 2: Agent execution loop ----
     for event in agent.stream(
         {"messages": [("user", question)]},
+        config={"configurable": {"thread_id": thread_id}},
         stream_mode="values",
     ):
         msg = event["messages"][-1]
@@ -295,7 +300,7 @@ def query(req: QueryRequest):
     """Synchronous endpoint — waits for the agent to finish, returns full JSON."""
     logger.info("=== /api/query received | question=%r ===", req.question)
     try:
-        answer, sql_query, tl_events, token_usage, total_ms = _run_agent(req.question)
+        answer, sql_query, tl_events, token_usage, total_ms = _run_agent(req.question, req.thread_id)
         columns, rows = _execute_sql(sql_query) if sql_query else ([], [])
         logger.info("=== /api/query done in %dms ===", total_ms)
         return _build_payload(answer, sql_query, tl_events, token_usage, total_ms, columns, rows)
@@ -338,6 +343,7 @@ async def query_stream(req: QueryRequest):
             try:
                 answer, sql_query, tl_events, token_usage, total_ms = _run_agent(
                     req.question,
+                    req.thread_id,
                     on_event=lambda tag, p: _relay(tag, p),
                 )
 

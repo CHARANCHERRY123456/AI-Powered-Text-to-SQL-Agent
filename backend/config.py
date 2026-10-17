@@ -13,3 +13,6 @@ GOOGLE_API_KEY: str = os.environ["GOOGLE_API_KEY"]
 LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-2.5-flash")
 LLM_TOP_K: int = int(os.getenv("LLM_TOP_K", "5"))
 SQL_DIALECT: str = "postgresql"
+
+# SQLite file where the agent's conversation memory is saved (survives restarts).
+MEMORY_DB_PATH: str = os.getenv("MEMORY_DB_PATH", "memory.sqlite")

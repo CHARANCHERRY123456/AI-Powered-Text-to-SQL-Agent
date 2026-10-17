@@ -19,11 +19,12 @@ export function queryApi(question) {
 
 // Async generator that yields parsed SSE events from the streaming endpoint.
 // Each yielded value is a plain object with a `type` field.
-export async function* streamQuery(question) {
+// threadId = conversation id; the backend uses it to remember earlier messages.
+export async function* streamQuery(question, threadId) {
   const res = await fetch('/api/query/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, thread_id: threadId }),
   })
 
   if (!res.ok) {

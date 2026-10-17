@@ -1,10 +1,12 @@
 import logging
+import sqlite3
 from langchain_community.utilities import SQLDatabase
 from langchain.chat_models import init_chat_model
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.prebuilt import create_react_agent
 from langsmith import Client
-from config import LLM_MODEL, LLM_TOP_K, SQL_DIALECT
+from config import LLM_MODEL, LLM_TOP_K, MEMORY_DB_PATH, SQL_DIALECT
 from db import engine
 
 logger = logging.getLogger(__name__)
@@ -29,7 +31,15 @@ def init_agent() -> None:
         dangerously_pull_public_prompt=True,
     )
     system_message = tpl.format(dialect=SQL_DIALECT, top_k=LLM_TOP_K)
-    _agent = create_react_agent(llm, toolkit.get_tools(), prompt=system_message)
+
+    # Persistent conversation memory: each thread_id's messages are saved to a
+    # SQLite file. check_same_thread=False because requests run in worker threads.
+    conn = sqlite3.connect(MEMORY_DB_PATH, check_same_thread=False)
+    checkpointer = SqliteSaver(conn)
+
+    _agent = create_react_agent(
+        llm, toolkit.get_tools(), prompt=system_message, checkpointer=checkpointer
+    )
     logger.info("Agent ready — tables: %s", _sql_db.get_usable_table_names())
 
 

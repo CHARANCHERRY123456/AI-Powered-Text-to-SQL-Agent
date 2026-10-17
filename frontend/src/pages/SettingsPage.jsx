@@ -79,8 +79,8 @@ export default function SettingsPage() {
 
         <Section title="Profile">
           {[
-            { label: 'Name', value: 'Ragamalika', icon: User },
-            { label: 'Email', value: 'tech@kipps.ai', icon: Bell },
+            { label: 'Name', value: 'Charan', icon: User },
+            { label: 'Email', value: 'cherryiiit1234@gmail.com', icon: Bell },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className={ROW}>
               <div className="flex items-center gap-2.5">

@@ -119,10 +119,10 @@ export default function Sidebar({ onClose }) {
           {isDark ? 'Light Mode' : 'Dark Mode'}
         </button>
         <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">R</div>
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">C</div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-slate-200 dark:text-slate-200 text-gray-900 truncate">Ragamalika</p>
-            <p className="text-[10px] text-slate-500 truncate">tech@kipps.ai</p>
+            <p className="text-xs font-semibold text-slate-200 dark:text-slate-200 text-gray-900 truncate">Charan</p>
+            <p className="text-[10px] text-slate-500 truncate">cherryiiit1234@gmail.com</p>
           </div>
         </div>
       </div>

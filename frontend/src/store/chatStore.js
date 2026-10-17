@@ -2,8 +2,6 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { streamQuery } from '../services/api'
 
-let _id = 1
-
 export const useChatStore = create(
   persist(
     (set, get) => ({
@@ -15,7 +13,9 @@ export const useChatStore = create(
       streamTick: 0,
 
       newConversation: () => {
-        const id = String(_id++)
+        // Unique across page reloads: the id is also the backend memory thread_id,
+        // so a reused id would mix two conversations' memory.
+        const id = crypto.randomUUID()
         const conv = {
           id,
           title: 'New Chat',
@@ -113,7 +113,7 @@ export const useChatStore = create(
           })
 
         try {
-          for await (const event of streamQuery(text)) {
+          for await (const event of streamQuery(text, id)) {
             if (event.type === 'complete') {
               patchMsg({
                 isStreaming: false,
