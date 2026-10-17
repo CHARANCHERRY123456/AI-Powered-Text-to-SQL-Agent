@@ -18,9 +18,9 @@ _DRIVERS = {
 @router.get("/api/schema")
 def get_schema():
     """Return the schema for the default (env-configured) database."""
-    sql_db = agent_module.get_sql_db()
-    table_names = sql_db.get_usable_table_names()
-    schema = build_schema(engine, table_names)
+    sql_db = agent_module.get_sql_db() # to get tables from langchain sql
+    table_names = sql_db.get_usable_table_names() 
+    schema = build_schema(engine, table_names) # build schema from the default engine
     return {"schema": schema, "tables": table_names}
 
 
