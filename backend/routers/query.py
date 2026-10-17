@@ -144,6 +144,9 @@ def _run_agent(
         elapsed = int((time.time() - start) * 1000)
         kind = type(msg).__name__
 
+        # it is simple for if ai is returning response it either return a tool call or a final answer
+        # If it is a tool call we can log the tool name and the arguments passed to it.
+        # If it is a final answer we can log the answer and the token usage.
         if kind == "AIMessage":
             tool_calls = getattr(msg, "tool_calls", None) or []
 
@@ -216,7 +219,11 @@ def _run_agent(
                     }
                     logger.info("Token usage: %s", token_usage)
 
+        # Log the tool calls and their outputs, if any.  
         elif kind == "ToolMessage":
+            # ToolMessage can be a tool call or a tool result.
+            # If it is a tool call, it will have a name and args.
+            # If it is a tool result, it will have a name and content.
             msg_name = getattr(msg, "name", "")
             content = to_text(msg.content) if hasattr(msg, "content") else ""
 
@@ -312,6 +319,7 @@ async def query_stream(req: QueryRequest):
 
     logger.info("=== /api/query/stream received | question=%r ===", req.question)
 
+    # --- SSE event generator ---
     async def event_gen() -> AsyncGenerator[str, None]:
         loop = asyncio.get_running_loop()
         queue: asyncio.Queue = asyncio.Queue()
@@ -319,6 +327,11 @@ async def query_stream(req: QueryRequest):
         # ---- thread worker ----
         def _worker():
             def _relay(tag: str, payload: dict):
+                """
+                Relay a single event to the asyncio queue.
+                tag is a string like "step", "complete", or "error".
+                payload is a dict with the event data.
+                """
                 logger.debug("SSE relay | tag=%s type=%s", tag, payload.get("type"))
                 loop.call_soon_threadsafe(queue.put_nowait, (tag, payload))
 
