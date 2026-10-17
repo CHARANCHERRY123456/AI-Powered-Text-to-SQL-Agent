@@ -117,7 +117,16 @@ export default function AssistantCard({ message }) {
                 )}
               </p>
             ) : (
-              <Pending streaming={isStreaming} label="Generating answer…" />
+              <>
+                <Pending
+                  streaming={isStreaming}
+                  label={liveTimeline.at(-1)?.detail?.message || 'Generating answer…'}
+                />
+                {/* Show live agent progress here too, not only in the Workflow tab */}
+                {isStreaming && liveTimeline.length > 0 && (
+                  <AgentTimeline steps={liveTimeline} />
+                )}
+              </>
             )
           )}
 
