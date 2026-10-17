@@ -5,10 +5,10 @@ from langchain_core.messages import AIMessageChunk, ToolMessage
 from langchain.chat_models import init_chat_model
 
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
-# from langgraph.prebuilt import create_react_agent
 from langchain.agents import create_agent
-from langsmith import Client
+from langgraph.checkpoint.memory import InMemorySaver
 
+from config import LLM_MODEL
 from db import engine
 
 SQL_PROMPT = """
@@ -30,24 +30,32 @@ Then you should query the schema of the most relevant tables.
 
 def init_agent(engine):
     sql_db = SQLDatabase(engine)
-    llm = init_chat_model("gemini-2.5-flash" , model_provider="google_genai")
-    prompt = SQL_PROMPT.strip()
+    llm = init_chat_model(LLM_MODEL, model_provider="google_genai")
     toolkit = SQLDatabaseToolkit(db=sql_db, llm=llm)
 
-    agent = create_agent(llm, toolkit.get_tools(), system_prompt=prompt)
-    return agent
+    return create_agent(
+        llm,
+        toolkit.get_tools(),
+        system_prompt=SQL_PROMPT.strip(),
+        checkpointer=InMemorySaver(),  # in-process memory, lost when the script exits
+    )
 
-async def stream_agent(agent, question: str) -> None:
+
+async def stream_agent(agent, question: str, thread_id: str) -> None:
     """Stream the agent's run: tool calls, tool results and answer tokens as they arrive."""
+    config = {"configurable": {"thread_id": thread_id}}
     # stream_mode="messages" yields (message_chunk, metadata) for every LLM token
     # and every tool result, instead of waiting for whole steps to finish.
     async for chunk, metadata in agent.astream(
         {"messages": [{"role": "user", "content": question}]},
+        config=config,
         stream_mode="messages",
     ):
         if isinstance(chunk, ToolMessage):
             print(f"\n[tool result: {chunk.name}] {chunk.text[:200]}")
-        elif isinstance(chunk, AIMessageChunk):
+        # Only the agent's own LLM runs in the "model" node. The query-checker tool
+        # also calls the LLM (inside the "tools" node); skip its tokens.
+        elif isinstance(chunk, AIMessageChunk) and metadata.get("langgraph_node") == "model":
             for call in chunk.tool_calls:
                 print(f"\n[tool call: {call['name']}] {call['args']}")
             if chunk.text:
@@ -55,6 +63,27 @@ async def stream_agent(agent, question: str) -> None:
     print()
 
 
+async def chat(agent, thread_id: str = "thread_1") -> None:
+    while True:
+        try:
+            # input() blocks, so run it in a thread to keep the event loop free.
+            question = (await asyncio.to_thread(input, "\nYour question: ")).strip()
+        except (EOFError, KeyboardInterrupt):
+            break
+        if not question:
+            continue
+        if question.lower() in ("exit", "quit"):
+            break
+        try:
+            await stream_agent(agent, question, thread_id)
+        except Exception as exc:  # e.g. LLM rate limit or DB outage — keep the chat alive
+            print(f"\n[error] {exc}")
+
+
 if __name__ == "__main__":
     agent = init_agent(engine)
-    asyncio.run(stream_agent(agent, "who is the topper"))
+    try:
+        asyncio.run(chat(agent))
+    except KeyboardInterrupt:  # Ctrl+C while the agent is running
+        pass
+    print("Bye!")
